@@ -12,6 +12,7 @@ type LogRecord struct {
 	Status                              int
 	Size                                int64
 	ElapsedTime                         time.Duration
+	RequestHeader                       http.Header
 	CustomRecords                       map[string]string
 }
 
@@ -101,6 +102,7 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	h.handler.ServeHTTP(writer, r)
 	finishTime := time.Now()
 
+	writer.logRecord.RequestHeader = r.Header
 	writer.logRecord.Time = finishTime.UTC()
 	writer.logRecord.ElapsedTime = finishTime.Sub(startTime)
 
