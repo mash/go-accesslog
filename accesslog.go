@@ -63,6 +63,15 @@ func NewLoggingHandler(handler http.Handler, logger Logger) http.Handler {
 	}
 }
 
+func NewLoggingMiddleware(logger Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		handler := NewLoggingHandler(next, logger)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler.ServeHTTP(w, r)
+		})
+	}
+}
+
 func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 
