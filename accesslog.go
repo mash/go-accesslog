@@ -43,6 +43,10 @@ func (r *LoggingWriter) SetCustomLogRecord(key, value string) {
 	r.logRecord.CustomRecords[key] = value
 }
 
+func (r *LoggingWriter) CloseNotify() <-chan bool {
+	return r.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
 type Logger interface {
 	Log(record LogRecord)
 }
