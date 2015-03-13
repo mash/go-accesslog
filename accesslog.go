@@ -106,7 +106,7 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	writer := &LoggingWriter{
 		ResponseWriter: rw,
 		logRecord: LogRecord{
-			Time:          startTime,
+			Time:          startTime.UTC(),
 			Ip:            ip,
 			Method:        r.Method,
 			Uri:           r.RequestURI,
