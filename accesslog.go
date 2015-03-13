@@ -53,14 +53,24 @@ type Logger interface {
 }
 
 type LoggingHandler struct {
-	handler http.Handler
-	logger  Logger
+	handler   http.Handler
+	logger    Logger
+	logBefore bool
 }
 
 func NewLoggingHandler(handler http.Handler, logger Logger) http.Handler {
 	return &LoggingHandler{
-		handler: handler,
-		logger:  logger,
+		handler:   handler,
+		logger:    logger,
+		logBefore: false,
+	}
+}
+
+func NewAroundLoggingHandler(handler http.Handler, logger Logger) http.Handler {
+	return &LoggingHandler{
+		handler:   handler,
+		logger:    logger,
+		logBefore: true,
 	}
 }
 
@@ -83,28 +93,35 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	startTime := time.Now()
 	writer := &LoggingWriter{
 		ResponseWriter: rw,
 		logRecord: LogRecord{
-			Time:        time.Time{},
-			Ip:          ip,
-			Method:      r.Method,
-			Uri:         r.RequestURI,
-			Username:    username,
-			Protocol:    r.Proto,
-			Status:      0,
-			Size:        0,
-			ElapsedTime: time.Duration(0),
+			Time:          startTime,
+			Ip:            ip,
+			Method:        r.Method,
+			Uri:           r.RequestURI,
+			Username:      username,
+			Protocol:      r.Proto,
+			Status:        0,
+			Size:          0,
+			ElapsedTime:   time.Duration(0),
+			RequestHeader: r.Header,
 		},
 	}
 
-	startTime := time.Now()
+	if h.logBefore {
+		writer.SetCustomLogRecord("at", "before")
+		h.logger.Log(writer.logRecord)
+	}
 	h.handler.ServeHTTP(writer, r)
 	finishTime := time.Now()
 
-	writer.logRecord.RequestHeader = r.Header
 	writer.logRecord.Time = finishTime.UTC()
 	writer.logRecord.ElapsedTime = finishTime.Sub(startTime)
 
+	if h.logBefore {
+		writer.SetCustomLogRecord("at", "after")
+	}
 	h.logger.Log(writer.logRecord)
 }
