@@ -1,6 +1,9 @@
 package accesslog
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -46,6 +49,13 @@ func (r *LoggingWriter) SetCustomLogRecord(key, value string) {
 
 func (r *LoggingWriter) CloseNotify() <-chan bool {
 	return r.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
+func (r *LoggingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hijacker, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return hijacker.Hijack()
+	}
+	return nil, nil, fmt.Errorf("ResponseWriter doesn't support Hijacker interface")
 }
 
 type Logger interface {
