@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -12,15 +13,16 @@ type customLogger struct {
 }
 
 func (l *customLogger) Log(record LogRecord) {
-	// l.buf += "time:" + record.Time.Format("02/Jan/2006:15:04:05 -0700")
-	// l.buf += "ip:" + record.Ip
-	l.buf += "method:" + record.Method
-	l.buf += "uri:" + record.Uri
-	l.buf += "protocol:" + record.Protocol
-	l.buf += "username:" + record.Username
-	l.buf += "status:" + fmt.Sprintf("%d", record.Status)
-	// l.buf += "elapsedTime:" + fmt.Sprintf("%d", record.ElapsedTime)
-	l.buf += "customRecords:" + fmt.Sprintf("%v", record.CustomRecords)
+	fields := make([]string, 0)
+	fields = append(fields, "method:"+record.Method)
+	fields = append(fields, "uri:"+record.Uri)
+	fields = append(fields, "protocol:"+record.Protocol)
+	fields = append(fields, "username:"+record.Username)
+	fields = append(fields, "host:"+record.Host)
+	fields = append(fields, "status:"+fmt.Sprintf("%d", record.Status))
+	fields = append(fields, "customRecords:"+fmt.Sprintf("%v", record.CustomRecords))
+	l.buf += strings.Join(fields, ",")
+	l.buf += "\n"
 }
 
 func okHandler(w http.ResponseWriter, req *http.Request) {
@@ -33,6 +35,7 @@ func newRequest(method, url string) *http.Request {
 	if err != nil {
 		panic(err)
 	}
+	req.Host = "example.com"
 	return req
 }
 
@@ -42,7 +45,7 @@ func TestOutput(t *testing.T) {
 	writer := httptest.NewRecorder()
 	loggingHandler.ServeHTTP(writer, newRequest("GET", "/"))
 
-	expected := "method:GETuri:protocol:HTTP/1.1username:-status:200customRecords:map[x-user-id:1]"
+	expected := "method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:200,customRecords:map[x-user-id:1]\n"
 	output := logger.buf
 	if output != expected {
 		t.Errorf("expected %s but got %s", expected, output)
@@ -55,11 +58,11 @@ func TestAroundOutput(t *testing.T) {
 	writer := httptest.NewRecorder()
 	loggingHandler.ServeHTTP(writer, newRequest("GET", "/"))
 
-	expected := "method:GETuri:protocol:HTTP/1.1username:-status:0customRecords:map[at:before]" +
-		"method:GETuri:protocol:HTTP/1.1username:-status:200customRecords:map[at:after x-user-id:1]"
+	expected := "method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:0,customRecords:map[at:before]\n" +
+		"method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:200,customRecords:map[at:after x-user-id:1]\n"
 
 	output := logger.buf
 	if output != expected {
-		t.Errorf("expected %s but got %s", expected, output)
+		t.Errorf("expected\n%s\nbut got\n%s", expected, output)
 	}
 }

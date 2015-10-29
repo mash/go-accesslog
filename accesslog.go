@@ -10,13 +10,13 @@ import (
 )
 
 type LogRecord struct {
-	Time                                time.Time
-	Ip, Method, Uri, Protocol, Username string
-	Status                              int
-	Size                                int64
-	ElapsedTime                         time.Duration
-	RequestHeader                       http.Header
-	CustomRecords                       map[string]string
+	Time                                      time.Time
+	Ip, Method, Uri, Protocol, Username, Host string
+	Status                                    int
+	Size                                      int64
+	ElapsedTime                               time.Duration
+	RequestHeader                             http.Header
+	CustomRecords                             map[string]string
 }
 
 type LoggingWriter struct {
@@ -122,6 +122,7 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			Uri:           r.RequestURI,
 			Username:      username,
 			Protocol:      r.Proto,
+			Host:          r.Host,
 			Status:        0,
 			Size:          0,
 			ElapsedTime:   time.Duration(0),
