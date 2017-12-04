@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	accesslog ".."
+	"github.com/mash/go-accesslog"
 )
 
 type logger struct {
