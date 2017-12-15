@@ -102,9 +102,24 @@ func NewAroundLoggingMiddleware(logger Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	ip := strings.Split(r.RemoteAddr, ":")[0]
+// readIp return the real ip when behide nginx or apache
+func (h *LoggingHandler) realIp(r *http.Request) string {
+	xRealIP := r.Header.Get("X-Real-Ip")
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
+	if xRealIP == "" && xForwardedFor == "" {
+		return strings.Split(r.RemoteAddr, ":")[0]
+	}
+	for _, address := range strings.Split(xForwardedFor, ",") {
+		address = strings.TrimSpace(address)
+		if address != "" {
+			return address
+		}
+	}
+	return xRealIP
+}
 
+func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	ip := h.realIp(r)
 	username := "-"
 	if r.URL.User != nil {
 		if name := r.URL.User.Username(); name != "" {
