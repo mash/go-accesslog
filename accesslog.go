@@ -66,6 +66,15 @@ func (r *LoggingWriter) Flush() {
 	}
 }
 
+// http.Pusher
+func (r *LoggingWriter) Push(target string, opts *http.PushOptions) error {
+	pusher, ok := r.ResponseWriter.(http.Pusher)
+	if ok {
+		return pusher.Push(target, opts)
+	}
+	return fmt.Errorf("ResponseWriter doesn't support Pusher interface")
+}
+
 type Logger interface {
 	Log(record LogRecord)
 }
