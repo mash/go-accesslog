@@ -58,6 +58,14 @@ func (r *LoggingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, fmt.Errorf("ResponseWriter doesn't support Hijacker interface")
 }
 
+// http.Flusher
+func (r *LoggingWriter) Flush() {
+	flusher, ok := r.ResponseWriter.(http.Flusher)
+	if ok {
+		flusher.Flush()
+	}
+}
+
 type Logger interface {
 	Log(record LogRecord)
 }
