@@ -47,8 +47,12 @@ func (r *LoggingWriter) SetCustomLogRecord(key, value string) {
 	r.logRecord.CustomRecords[key] = value
 }
 
+// http.CloseNotifier interface
 func (r *LoggingWriter) CloseNotify() <-chan bool {
-	return r.ResponseWriter.(http.CloseNotifier).CloseNotify()
+	if w, ok := r.ResponseWriter.(http.CloseNotifier); ok {
+		return w.CloseNotify()
+	}
+	return make(chan bool)
 }
 
 func (r *LoggingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
