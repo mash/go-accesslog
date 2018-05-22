@@ -123,9 +123,34 @@ func NewAroundLoggingMiddleware(logger Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	ip := strings.Split(r.RemoteAddr, ":")[0]
+// readIp return the real ip when behide nginx or apache
+func (h *LoggingHandler) realIp(r *http.Request) string {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
+	}
+	if ip != "127.0.0.1" {
+		return ip
+	}
+	// Check if behide nginx or apache
+	xRealIP := r.Header.Get("X-Real-Ip")
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
 
+	for _, address := range strings.Split(xForwardedFor, ",") {
+		address = strings.TrimSpace(address)
+		if address != "" {
+			return address
+		}
+	}
+
+	if xRealIP != "" {
+		return xRealIP
+	}
+	return ip
+}
+
+func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	ip := h.realIp(r)
 	username := "-"
 	if r.URL.User != nil {
 		if name := r.URL.User.Username(); name != "" {
