@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -20,7 +21,19 @@ func (l *customLogger) Log(record LogRecord) {
 	fields = append(fields, "username:"+record.Username)
 	fields = append(fields, "host:"+record.Host)
 	fields = append(fields, "status:"+fmt.Sprintf("%d", record.Status))
-	fields = append(fields, "customRecords:"+fmt.Sprintf("%v", record.CustomRecords))
+
+	// Sort the custom records to get a deterministic test result
+	keys := []string{}
+	for k, _ := range record.CustomRecords {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	customRecords := []string{}
+	for _, key := range keys {
+		customRecords = append(customRecords, fmt.Sprintf("%s:%s", key, record.CustomRecords[key]))
+	}
+	fields = append(fields, "customRecords:"+fmt.Sprintf("map%v", customRecords))
+
 	l.buf += strings.Join(fields, ",")
 	l.buf += "\n"
 }
