@@ -2,6 +2,7 @@ package accesslog
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -146,6 +147,18 @@ func (h *LoggingHandler) realIp(r *http.Request) string {
 	return ip
 }
 
+type contextKey string
+
+const ctxLoggerKey contextKey = "loggerKey"
+
+func GetLoggingWriter(ctx context.Context) *LoggingWriter {
+	iface := ctx.Value(ctxLoggerKey)
+	if l, ok := iface.(*LoggingWriter); ok {
+		return l
+	}
+	return nil
+}
+
 func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	ip := h.realIp(r)
 	username := "-"
@@ -177,6 +190,9 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		writer.SetCustomLogRecord("at", "before")
 		h.logger.Log(writer.logRecord)
 	}
+
+	ctx := context.WithValue(r.Context(), ctxLoggerKey, writer)
+	r = r.WithContext(ctx)
 	h.handler.ServeHTTP(writer, r)
 	finishTime := time.Now()
 
