@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+type contextKey int
+
+var (
+	ctxLoggerKey contextKey
+)
+
 type LogRecord struct {
 	Time                                      time.Time
 	Ip, Method, Uri, Protocol, Username, Host string
@@ -146,10 +152,6 @@ func (h *LoggingHandler) realIp(r *http.Request) string {
 	}
 	return ip
 }
-
-type contextKey string
-
-const ctxLoggerKey contextKey = "loggerKey"
 
 func GetLoggingWriter(ctx context.Context) *LoggingWriter {
 	iface := ctx.Value(ctxLoggerKey)
