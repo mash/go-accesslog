@@ -79,3 +79,24 @@ func TestAroundOutput(t *testing.T) {
 		t.Errorf("expected\n%s\nbut got\n%s", expected, output)
 	}
 }
+
+func okContextHandler(w http.ResponseWriter, req *http.Request) {
+	logger := GetLoggingWriter(req.Context())
+	logger.SetCustomLogRecord("x-user-id", "1")
+	w.Write([]byte(`ok`))
+}
+
+func TestSetCustomLogRecord_context(t *testing.T) {
+	logger := customLogger{}
+	loggingHandler := NewAroundLoggingHandler(http.HandlerFunc(okContextHandler), &logger)
+	writer := httptest.NewRecorder()
+	loggingHandler.ServeHTTP(writer, newRequest("GET", "/"))
+
+	expected := "method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:0,customRecords:map[at:before]\n" +
+		"method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:200,customRecords:map[at:after x-user-id:1]\n"
+
+	output := logger.buf
+	if output != expected {
+		t.Errorf("expected\n%s\nbut got\n%s", expected, output)
+	}
+}
