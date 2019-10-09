@@ -86,6 +86,11 @@ func (r *LoggingWriter) Push(target string, opts *http.PushOptions) error {
 	return fmt.Errorf("ResponseWriter doesn't support Pusher interface")
 }
 
+// WrapWriter interface
+func (r *LoggingWriter) WrappedWriter() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
 type Logger interface {
 	Log(record LogRecord)
 }

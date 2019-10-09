@@ -100,3 +100,52 @@ func TestSetCustomLogRecord_context(t *testing.T) {
 		t.Errorf("expected\n%s\nbut got\n%s", expected, output)
 	}
 }
+
+func okWrappedHandler(w http.ResponseWriter, req *http.Request) {
+	logger, ok := GetResponseWriter(w, func(rw http.ResponseWriter) bool {
+		_, ok := rw.(*LoggingWriter)
+		return ok
+	})
+	if ok {
+		logger.(*LoggingWriter).SetCustomLogRecord("x-user-id", "1")
+	}
+	w.Write([]byte(`ok`))
+}
+
+func TestSetCustomLogRecord_wrapped(t *testing.T) {
+	logger := customLogger{}
+	loggingHandler := NewAroundLoggingHandler(http.HandlerFunc(okWrappedHandler), &logger)
+	writer := httptest.NewRecorder()
+	loggingHandler.ServeHTTP(writer, newRequest("GET", "/"))
+
+	expected := "method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:0,customRecords:map[at:before]\n" +
+		"method:GET,uri:,protocol:HTTP/1.1,username:-,host:example.com,status:200,customRecords:map[at:after x-user-id:1]\n"
+
+	output := logger.buf
+	if output != expected {
+		t.Errorf("expected\n%s\nbut got\n%s", expected, output)
+	}
+}
+
+type WrapWriter interface {
+	http.ResponseWriter
+	WrappedWriter() http.ResponseWriter
+}
+
+// Helper function to retrieve a specific ResponseWriter.
+func GetResponseWriter(w http.ResponseWriter,
+	predicate func(http.ResponseWriter) bool) (http.ResponseWriter, bool) {
+
+	for {
+		// Check if this writer is the one we're looking for
+		if w != nil && predicate(w) {
+			return w, true
+		}
+		// If it is a WrapWriter, move back the chain of wrapped writers
+		ww, ok := w.(WrapWriter)
+		if !ok {
+			return nil, false
+		}
+		w = ww.WrappedWriter()
+	}
+}
