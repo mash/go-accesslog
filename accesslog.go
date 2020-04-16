@@ -219,7 +219,7 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.WithValue(r.Context(), ctxLoggerKey, writer)
-	*r = *r.WithContext(ctx)
+	r = r.WithContext(ctx)
 	h.handler.ServeHTTP(writer, r)
 	finishTime := time.Now()
 
