@@ -95,16 +95,36 @@ type Logger interface {
 	Log(record LogRecord)
 }
 
+type ContextLogger interface {
+	Logger
+	LogContext(context.Context, LogRecord)
+}
+
 type LoggingHandler struct {
 	handler   http.Handler
-	logger    Logger
+	logger    ContextLogger
 	logBefore bool
+}
+
+type wrapLogger struct {
+	Logger
+}
+
+func (wl *wrapLogger) LogContext(ctx context.Context, l LogRecord) {
+	wl.Log(l)
+}
+
+func contextLogger(l Logger) ContextLogger {
+	if cl, ok := l.(ContextLogger); ok {
+		return cl
+	}
+	return &wrapLogger{l}
 }
 
 func NewLoggingHandler(handler http.Handler, logger Logger) http.Handler {
 	return &LoggingHandler{
 		handler:   handler,
-		logger:    logger,
+		logger:    contextLogger(logger),
 		logBefore: false,
 	}
 }
@@ -112,7 +132,7 @@ func NewLoggingHandler(handler http.Handler, logger Logger) http.Handler {
 func NewAroundLoggingHandler(handler http.Handler, logger Logger) http.Handler {
 	return &LoggingHandler{
 		handler:   handler,
-		logger:    logger,
+		logger:    contextLogger(logger),
 		logBefore: true,
 	}
 }
@@ -195,7 +215,7 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	if h.logBefore {
 		writer.SetCustomLogRecord("at", "before")
-		h.logger.Log(writer.logRecord)
+		h.logger.LogContext(r.Context(), writer.logRecord)
 	}
 
 	ctx := context.WithValue(r.Context(), ctxLoggerKey, writer)
@@ -209,5 +229,5 @@ func (h *LoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if h.logBefore {
 		writer.SetCustomLogRecord("at", "after")
 	}
-	h.logger.Log(writer.logRecord)
+	h.logger.LogContext(r.Context(), writer.logRecord)
 }
