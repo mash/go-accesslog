@@ -127,6 +127,20 @@ func TestSetCustomLogRecord_wrapped(t *testing.T) {
 	}
 }
 
+func TestLoggingWriter(t *testing.T) {
+	w := &LoggingWriter{
+		ResponseWriter: nil,
+		logRecord: LogRecord{},
+	}
+	w.SetCustomLogRecord("x-user-id", "1")
+	if e,g:="1",w.GetCustomLogRecord("x-user-id");e!=g {
+		t.Errorf("unexpected GetCustomLogRecord, expected=%v, got=%v",e,g)
+	}
+	if e,g:="",w.GetCustomLogRecord("hoge");e!=g {
+		t.Errorf("unexpected GetCustomLogRecord, expected=%v, got=%v",e,g)
+	}
+}
+
 type WrapWriter interface {
 	http.ResponseWriter
 	WrappedWriter() http.ResponseWriter

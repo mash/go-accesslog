@@ -46,12 +46,23 @@ func (r *LoggingWriter) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
+// SetCustomLogRecord and GetCustomLogRecord functions provide accessors to the logRecord.CustomRecords.
+// You can use it to store arbitrary strings that are relevant to this request.
+//
+// Alternative method would be to store the value in context.
+// Which doesn't work when you want to retrieve the value from a HTTP middleware that is earlier in the middleware chain, eg: accesslog, recovery.
+//
 // w.(accesslogger.LoggingWriter).SetCustomLogRecord("X-User-Id", "3")
 func (r *LoggingWriter) SetCustomLogRecord(key, value string) {
 	if r.logRecord.CustomRecords == nil {
 		r.logRecord.CustomRecords = map[string]string{}
 	}
 	r.logRecord.CustomRecords[key] = value
+}
+
+// w.(accesslogger.LoggingWriter).GetCustomLogRecord("X-User-Id")
+func (r *LoggingWriter) GetCustomLogRecord(key string) string{
+	return r.logRecord.CustomRecords[key]
 }
 
 // http.CloseNotifier interface
